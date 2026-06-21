@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Đặt hàng thành công — TechShop{% endblock %}
+{% block content %}
+<div class="success-page">
+  <div class="success-icon">🎉</div>
+  <h1>Đặt hàng thành công!</h1>
+  <p>Cảm ơn bạn đã mua hàng tại TechShop. Đơn hàng của bạn đang được xử lý.</p>
+  <p>Chúng tôi sẽ liên hệ với bạn trong vòng 24 giờ để xác nhận đơn hàng.</p>
+  <div class="success-actions">
+    <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg">Tiếp tục mua sắm</a>
+  </div>
+</div>
+{% endblock %}

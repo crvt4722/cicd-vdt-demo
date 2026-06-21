@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cicd-vdt-demo
+  namespace: dev
+  labels:
+    app: cicd-vdt-demo
+    env: dev
+spec:
+  selector:
+    app: cicd-vdt-demo
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000
+  type: ClusterIP

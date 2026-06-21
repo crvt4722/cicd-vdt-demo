@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Giỏ hàng — TechShop{% endblock %}
+{% block content %}
+<h1 class="page-title">🛒 Giỏ hàng</h1>
+
+{% if items %}
+<div class="cart-layout">
+  <div class="cart-items">
+    {% for item in items %}
+    <div class="cart-item">
+      <img src="{{ item.image }}" alt="{{ item.name }}">
+      <div class="item-info">
+        <a href="{{ url_for('product', pid=item.id) }}"><h3>{{ item.name }}</h3></a>
+        <p class="price">{{ item.price | vnd }}</p>
+      </div>
+      <div class="item-actions">
+        <form action="{{ url_for('update_cart', pid=item.id) }}" method="post" class="qty-form">
+          <div class="qty-input">
+            <button type="button" onclick="changeQtyForm(this, -1)">−</button>
+            <input type="number" name="qty" value="{{ item.qty }}" min="0" max="99">
+            <button type="button" onclick="changeQtyForm(this, 1)">+</button>
+          </div>
+          <button type="submit" class="btn btn-sm btn-outline">Cập nhật</button>
+        </form>
+        <form action="{{ url_for('remove_from_cart', pid=item.id) }}" method="post">
+          <button type="submit" class="btn btn-sm btn-danger">🗑 Xóa</button>
+        </form>
+      </div>
+      <div class="item-subtotal">{{ item.subtotal | vnd }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="cart-summary">
+    <h3>Tóm tắt đơn hàng</h3>
+    <div class="summary-row">
+      <span>Tạm tính:</span><span>{{ total | vnd }}</span>
+    </div>
+    <div class="summary-row">
+      <span>Phí vận chuyển:</span><span class="free">Miễn phí</span>
+    </div>
+    <div class="summary-row total-row">
+      <span>Tổng cộng:</span><span>{{ total | vnd }}</span>
+    </div>
+    <a href="{{ url_for('checkout') }}" class="btn btn-primary btn-full btn-lg">Thanh toán ngay</a>
+    <a href="{{ url_for('index') }}" class="btn btn-outline btn-full" style="margin-top:8px">Tiếp tục mua sắm</a>
+    <form action="{{ url_for('clear_cart') }}" method="post" style="margin-top:8px">
+      <button type="submit" class="btn btn-danger btn-full" onclick="return confirm('Xóa toàn bộ giỏ hàng?')">Xóa giỏ hàng</button>
+    </form>
+  </div>
+</div>
+{% else %}
+<div class="empty-state">
+  <p>🛒 Giỏ hàng của bạn đang trống.</p>
+  <a href="{{ url_for('index') }}" class="btn btn-primary">Khám phá sản phẩm</a>
+</div>
+{% endif %}
+{% endblock %}

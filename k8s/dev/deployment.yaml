@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cicd-vdt-demo
+  namespace: dev
+  labels:
+    app: cicd-vdt-demo
+    env: dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cicd-vdt-demo
+  template:
+    metadata:
+      labels:
+        app: cicd-vdt-demo
+        env: dev
+    spec:
+      containers:
+        - name: app
+          image: ghcr.io/OWNER/REPO:dev
+          ports:
+            - containerPort: 5000
+          env:
+            - name: FLASK_ENV
+              value: "production"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 20

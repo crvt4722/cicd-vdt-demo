@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}TechShop — Trang chủ{% endblock %}
+{% block content %}
+<div class="hero">
+  <h1>Công nghệ đỉnh cao 🚀</h1>
+  <p>Sản phẩm chính hãng, giá tốt nhất thị trường</p>
+</div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <h3>Danh mục</h3>
+    <ul class="category-list">
+      <li><a href="{{ url_for('index') }}" class="{{ 'active' if not selected_category }}">Tất cả</a></li>
+      {% for cat in categories %}
+      <li><a href="{{ url_for('index', category=cat) }}" class="{{ 'active' if selected_category == cat }}">{{ cat }}</a></li>
+      {% endfor %}
+    </ul>
+  </aside>
+
+  <section class="products-section">
+    {% if search %}
+    <p class="result-info">Kết quả tìm kiếm cho "<strong>{{ search }}</strong>": {{ products|length }} sản phẩm</p>
+    {% elif selected_category %}
+    <p class="result-info">Danh mục: <strong>{{ selected_category }}</strong> — {{ products|length }} sản phẩm</p>
+    {% endif %}
+
+    {% if products %}
+    <div class="product-grid">
+      {% for p in products %}
+      <div class="product-card">
+        <a href="{{ url_for('product', pid=p.id) }}">
+          <img src="{{ p.image }}" alt="{{ p.name }}">
+          <div class="card-body">
+            <span class="category-tag">{{ p.category }}</span>
+            <h3>{{ p.name }}</h3>
+            <p class="price">{{ p.price | vnd }}</p>
+            {% if p.stock <= 3 %}
+            <span class="stock-low">Chỉ còn {{ p.stock }} sản phẩm!</span>
+            {% endif %}
+          </div>
+        </a>
+        <form action="{{ url_for('add_to_cart', pid=p.id) }}" method="post">
+          <input type="hidden" name="qty" value="1">
+          <button type="submit" class="btn btn-primary btn-full">🛒 Thêm vào giỏ</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>😅 Không tìm thấy sản phẩm phù hợp.</p>
+      <a href="{{ url_for('index') }}" class="btn btn-outline">Xem tất cả sản phẩm</a>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
