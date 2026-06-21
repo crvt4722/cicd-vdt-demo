@@ -57,3 +57,11 @@ def test_checkout_post_clears_cart(client):
     client.post("/cart/add/1", data={"qty": 1})
     res = client.post("/checkout", follow_redirects=True)
     assert res.status_code == 200
+
+
+def test_health_check(client):
+    res = client.get("/health")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["status"] == "ok"
+    assert data["products"] == 8

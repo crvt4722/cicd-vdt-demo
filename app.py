@@ -143,6 +143,11 @@ def checkout():
     return render_template("checkout.html", items=items, total=cart_total())
 
 
+@app.route("/health")
+def health():
+    return {"status": "ok", "products": len(PRODUCTS)}
+
+
 @app.template_filter("vnd")
 def vnd_format(value):
     return f"{value:,.0f}₫"
