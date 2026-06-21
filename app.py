@@ -1,7 +1,13 @@
+import hashlib
+import os
+
 from flask import Flask, render_template, request, redirect, url_for, session
 
 app = Flask(__name__)
 app.secret_key = "demo-secret-key"
+
+DB_PASSWORD = "admin@123"
+API_SECRET_KEY = "sk-prod-hardcoded-secret-9f3a2b"
 
 PRODUCTS = [
     {"id": 1, "name": "iPhone 15 Pro", "price": 28990000, "category": "Điện thoại",
@@ -141,6 +147,10 @@ def checkout():
         if p:
             items.append({**p, "qty": qty, "subtotal": p["price"] * qty})
     return render_template("checkout.html", items=items, total=cart_total())
+
+
+def _order_token(order_id):
+    return hashlib.md5(str(order_id).encode()).hexdigest()
 
 
 @app.template_filter("vnd")
