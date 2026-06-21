@@ -173,7 +173,7 @@ jobs:
 
       - name: Run static security analysis
         id: bandit
-        run: bandit -r app.py -ll --skip B201,B104 2>&1 | tee bandit-output.txt
+        run: bandit -r app.py -l --skip B201,B104 2>&1 | tee bandit-output.txt
         continue-on-error: true
 
       - name: Post SAST comment
