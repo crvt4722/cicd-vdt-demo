@@ -95,8 +95,8 @@ jobs:
         if: steps.pytest.outcome == 'failure'
         run: exit 1
 
-  security-deps:
-    name: Dependency Security Scan
+  security-trivy:
+    name: Trivy Security Scan
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -105,42 +105,133 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Download Trivy HTML template
+        run: curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl -o html.tpl
+
+      - name: Trivy - Dependency Vulnerability Scan
+        id: trivy-vuln
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
-          python-version: "3.12"
-          cache: "pip"
-
-      - name: Install pip-audit
-        run: pip install pip-audit
-
-      - name: Scan dependencies for vulnerabilities
-        id: audit
-        run: pip-audit -r requirements.txt 2>&1 | tee audit-output.txt
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          format: json
+          output: trivy-vuln.json
         continue-on-error: true
 
-      - name: Post audit comment
+      - name: Trivy - IaC Configuration Scan
+        id: trivy-iac
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: misconfig
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          format: json
+          output: trivy-iac.json
+          skip-setup-trivy: "true"
+        continue-on-error: true
+
+      - name: Trivy - Secret Detection
+        id: trivy-secret
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: secret
+          exit-code: "1"
+          format: json
+          output: trivy-secret.json
+          skip-setup-trivy: "true"
+        continue-on-error: true
+
+      - name: Generate HTML and table reports from JSON
+        if: always()
+        run: |
+          TEMPLATE="@$GITHUB_WORKSPACE/html.tpl"
+          for type in vuln iac secret; do
+            json="trivy-${type}.json"
+            if [ -f "$json" ]; then
+              trivy convert --format template --template "$TEMPLATE" --output "trivy-${type}.html" "$json" 2>&1 || true
+              trivy convert --format table "$json" 2>&1 | tee "trivy-${type}.txt" || true
+            else
+              echo "(scan did not produce output)" > "trivy-${type}.txt"
+            fi
+          done
+
+      - name: Upload Trivy HTML Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-security-reports
+          path: |
+            trivy-vuln.html
+            trivy-iac.html
+            trivy-secret.html
+
+      - name: Post Trivy Security Comment
         uses: actions/github-script@v7
         if: always()
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            const output = fs.readFileSync('audit-output.txt', 'utf8');
-            const passed = '${{ steps.audit.outcome }}' === 'success';
-            const icon = passed ? '✅' : '❌';
-            const status = passed ? 'No vulnerabilities found' : 'Vulnerabilities detected!';
+
+            const readFile = (path) => {
+              try { return fs.readFileSync(path, 'utf8').trim() || '(no output)'; }
+              catch { return '(no output)'; }
+            };
+
+            const vulnOut   = readFile('trivy-vuln.txt');
+            const iacOut    = readFile('trivy-iac.txt');
+            const secretOut = readFile('trivy-secret.txt');
+
+            const vulnOk   = '${{ steps.trivy-vuln.outcome }}'   === 'success';
+            const iacOk    = '${{ steps.trivy-iac.outcome }}'    === 'success';
+            const secretOk = '${{ steps.trivy-secret.outcome }}' === 'success';
+
+            const icon = (ok) => ok ? '✅' : '❌';
+            const runUrl = `${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+
             const body = [
-              `## ${icon} Dependency Security Scan — ${status}`,
+              '## Trivy Security Scan',
               '',
-              '<details><summary>Scan Output</summary>',
+              '| Scan Type | Status |',
+              '|-----------|--------|',
+              `| ${icon(vulnOk)} Dependency Vulnerabilities (HIGH/CRITICAL) | ${vulnOk ? 'No issues found' : 'Issues detected!'} |`,
+              `| ${icon(iacOk)} IaC Configuration (HIGH/CRITICAL) | ${iacOk ? 'No issues found' : 'Issues detected!'} |`,
+              `| ${icon(secretOk)} Secret Detection | ${secretOk ? 'No secrets found' : 'Secrets detected!'} |`,
+              '',
+              '<details><summary>📦 Dependency Vulnerability Scan</summary>',
               '',
               '```',
-              output.trim(),
+              vulnOut,
               '```',
               '',
               '</details>',
+              '',
+              '<details><summary>🏗️ IaC Configuration Scan</summary>',
+              '',
+              '```',
+              iacOut,
+              '```',
+              '',
+              '</details>',
+              '',
+              '<details><summary>🔑 Secret Detection</summary>',
+              '',
+              '```',
+              secretOut,
+              '```',
+              '',
+              '</details>',
+              '',
+              `> 📄 HTML reports: [Download from workflow artifacts](${runUrl})`,
             ].join('\n');
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -148,8 +239,11 @@ jobs:
               body,
             });
 
-      - name: Fail if vulnerabilities found
-        if: steps.audit.outcome == 'failure'
+      - name: Fail if security issues found
+        if: |
+          steps.trivy-vuln.outcome == 'failure' ||
+          steps.trivy-iac.outcome == 'failure' ||
+          steps.trivy-secret.outcome == 'failure'
         run: exit 1
 
   security-sast:
