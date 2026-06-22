@@ -1,0 +1,16 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: cicd-demo-ingress
+  namespace: dev
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`demo.vdevopssphere.ddnsfree.com`)
+      services:
+        - name: cicd-vdt-demo
+          port: 80
+  tls:
+    certResolver: letsencrypt
