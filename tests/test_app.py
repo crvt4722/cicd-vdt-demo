@@ -57,3 +57,28 @@ def test_checkout_post_clears_cart(client):
     client.post("/cart/add/1", data={"qty": 1})
     res = client.post("/checkout", follow_redirects=True)
     assert res.status_code == 200
+
+
+def test_discount_valid_code(client):
+    res = client.get("/discount?code=SAVE10")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["valid"] is True
+    assert data["discount_rate"] == 0.10
+
+
+def test_discount_invalid_code(client):
+    res = client.get("/discount?code=INVALID")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["valid"] is False
+
+
+def test_discount_calculation_correct(client):
+    # Intentional failure: validates wrong expected discount rate
+    res = client.get("/discount?code=VDT20")
+    data = res.get_json()
+    assert data["discount_rate"] == 0.50, (
+        f"Expected 50% discount but got {data['discount_rate']} — "
+        "discount logic needs fixing"
+    )
