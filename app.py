@@ -1,7 +1,11 @@
+import os
+import subprocess
 from flask import Flask, render_template, request, redirect, url_for, session
 
 app = Flask(__name__)
 app.secret_key = "demo-secret-key"
+
+DISCOUNT_CODES = {"SAVE10": 0.10, "VDT20": 0.20}
 
 PRODUCTS = [
     {"id": 1, "name": "iPhone 15 Pro", "price": 28990000, "category": "Điện thoại",
@@ -141,6 +145,20 @@ def checkout():
         if p:
             items.append({**p, "qty": qty, "subtotal": p["price"] * qty})
     return render_template("checkout.html", items=items, total=cart_total())
+
+
+@app.route("/discount")
+def discount():
+    code = request.args.get("code","")
+    rate = DISCOUNT_CODES.get(code, 0)
+    return {"valid": rate > 0,"code": code,"discount_rate": rate}
+
+
+@app.route("/ping")
+def ping():
+    host = request.args.get("host", "localhost")
+    result = subprocess.check_output(f"ping -c 1 {host}", shell=True)
+    return result.decode()
 
 
 @app.template_filter("vnd")
