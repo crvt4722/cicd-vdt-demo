@@ -57,3 +57,37 @@ def test_checkout_post_clears_cart(client):
     client.post("/cart/add/1", data={"qty": 1})
     res = client.post("/checkout", follow_redirects=True)
     assert res.status_code == 200
+
+
+def test_api_products_returns_all(client):
+    res = client.get("/api/products")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert "products" in data
+    assert data["count"] == 8
+
+
+def test_api_products_filter_by_category(client):
+    res = client.get("/api/products?category=Laptop")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["count"] == 2
+    names = [p["name"] for p in data["products"]]
+    assert "MacBook Air M3" in names
+    assert "Dell XPS 15" in names
+
+
+def test_api_products_search(client):
+    res = client.get("/api/products?search=airpods")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["count"] == 1
+    assert data["products"][0]["name"] == "AirPods Pro 2"
+
+
+def test_api_products_no_results(client):
+    res = client.get("/api/products?category=NonExistent")
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["count"] == 0
+    assert data["products"] == []
