@@ -57,3 +57,9 @@ def test_checkout_post_clears_cart(client):
     client.post("/cart/add/1", data={"qty": 1})
     res = client.post("/checkout", follow_redirects=True)
     assert res.status_code == 200
+
+
+def test_about_page(client):
+    res = client.get("/about")
+    assert res.status_code == 200
+    assert b"TechShop" in res.data
